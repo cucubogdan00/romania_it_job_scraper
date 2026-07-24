@@ -27,6 +27,7 @@ jobs:
         touch jobs.db scraper.log
         
         docker run --rm \
+          -e TZ=Europe/Bucharest \
           -v $(pwd)/jobs.db:/app/jobs.db \
           -v $(pwd)/scraper.log:/app/scraper.log \
           romania_it_job_scraper
