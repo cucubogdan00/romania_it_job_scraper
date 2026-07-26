@@ -41,11 +41,11 @@ class JobParser:
         text_lower = text.lower()
 
         special_patterns = {
-            '.net': r'(?:\bdotnet\b|\b\.net\b)',
-            'c#': r'(?:\bc#\b|\bc-sharp\b)',
-            'c++': r'(?:\bc\+\+\b)',
-            'ci/cd': r'(?:\bci/cd\b|\bci-cd\b)',
-            'asp.net': r'(?:\basp\.net\b)'
+            '.net': r'(\bdotnet\b|\.net)',
+            'c#': r'(?:c\s*#|c-sharp)',
+            'c++': r'c\s*\+\+',
+            'ci/cd': r'(?:ci/cd|ci-cd)',
+            'asp.net': r'asp\.net'
         }
 
         for kw in tech_keywords:
