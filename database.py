@@ -131,6 +131,7 @@ class JobDatabase:
         connection.commit()
         connection.close()
 
+        return expired_count
 
     def generate_market_report(self):
 

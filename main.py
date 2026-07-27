@@ -2,6 +2,9 @@ import time
 import logging
 import sys
 import asyncio
+import json
+import os
+import sqlite3
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -162,9 +165,55 @@ async def run_bestjobs(db_queue, tech_keywords):
         active_driver.quit()
     return total_saved
 
+def format_duration(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = int(seconds % 60)
+
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    elif minutes > 0:
+        return f"{minutes}m {seconds}s"
+    else:
+        return f"{seconds}s"
+
+def save_run_stats(total_saved_run, run_start_time, expired_count, duration_str, db_name = 'jobs.db'):
+
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM jobs WHERE status = 'active'")
+    total_active_jobs = cursor.fetchone()[0]
+
+    connection.close()
+    
+    stats = {
+        "date_scraped" : run_start_time,
+        "total_saved": total_saved_run,
+        "total_active_jobs": total_active_jobs,
+        "expired_found" : expired_count,
+        "duration" : duration_str
+
+    }
+    filename = "run_stats.json"
+
+    if os.path.exists(filename):
+        with open(filename, 'r', encoding = 'utf-8') as f:
+            try:
+                history = json.load(f)
+            except json.JSONDecodeError:
+                history = []
+    else:
+        history = []
+
+    history.append(stats)
+
+    with open(filename, 'w', encoding = 'utf-8') as f:
+        json.dump(history, f, indent = 4, ensure_ascii = False)
 
 async def main():
 
+    start_time_seconds = time.time()
     run_start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     tech_keywords = {
@@ -221,7 +270,12 @@ async def main():
     logging.info(f'\nTotal IT jobs saved during this run: {total_saved_run}')
 
     ejobs_scraper_instance = EJobsScraper()
-    db.check_expired_jobs(ejobs_scraper_instance.fetch_description_html_fast, run_start_time)
+    expired_count = db.check_expired_jobs(ejobs_scraper_instance.fetch_description_html_fast, run_start_time)
+
+    total_seconds = time.time() - start_time_seconds
+    duration_str = format_duration(total_seconds)
+
+    save_run_stats(total_saved_run, run_start_time, expired_count, duration_str)
 
     db.generate_market_report()
 
