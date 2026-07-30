@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import sqlite3
+import requests
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -177,6 +178,51 @@ def format_duration(seconds):
     else:
         return f"{seconds}s"
 
+def send_telegram_run_stats():
+
+    TOKEN = "8938481800:AAH-WeMU959MYdKP77jm9X8KiAzYqR1D5H8"
+    CHAT_ID = "8146994453"
+
+    filename = "run_stats.json"
+    if not os.path.exists(filename):
+        logging.warning("[Telegram] run_stats.json not found, skipping notification.")
+        return
+
+    try:
+        with open(filename, 'r', encoding = 'utf-8') as f:
+            history = json.load(f)
+            if not history:
+                return 
+            latest = history[-1]
+    except Exception as e:
+        logging.error(f"[Telegram Error] Could not read run_stats.json: {e}")
+        return 
+
+    message = (
+        f"🚀 *Romania IT Job Scraper - Run Report*\n\n"
+        f"📅 *Date:* {latest.get('date_scraped')}\n"
+        f"📥 *Saved/Processed:* {latest.get('total_saved')}\n"
+        f"📊 *Total Active:* {latest.get('total_active_jobs')}\n"
+        f"❌ *Expired Found:* {latest.get('expired_found')}\n"
+        f"⏱️ *Duration:* {latest.get('duration')}"
+    )
+
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+
+    try:
+        response = requests.post(url, json = payload)
+        if response.status_code == 200:
+            logging.info("[Telegram] Notification sent successfully!")
+        else:
+            logging.warning(f"[Telegram] Failed to send notification: {response.text}")
+    except Exception as e:
+        logging.error(f"[Telegram Error] Network exception: {e}")
+
 def save_run_stats(total_saved_run, run_start_time, expired_count, duration_str, db_name = 'jobs.db'):
 
     connection = sqlite3.connect(db_name)
@@ -276,6 +322,8 @@ async def main():
     duration_str = format_duration(total_seconds)
 
     save_run_stats(total_saved_run, run_start_time, expired_count, duration_str)
+
+    send_telegram_run_stats()
 
     db.generate_market_report()
 
