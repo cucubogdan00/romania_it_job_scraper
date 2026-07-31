@@ -14,6 +14,7 @@ from database import JobDatabase
 from bestjobs_scraper import BestJobsScraper
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from linkedin_scraper import LinkedInScraper
 
 
 logging.basicConfig(
@@ -166,6 +167,61 @@ async def run_bestjobs(db_queue, tech_keywords):
         active_driver.quit()
     return total_saved
 
+async def run_linkedin(db_queue, tech_keywords, location="Romania"):
+    logging.info("--- Starting LinkedIn Scraper ---")
+    scraper = LinkedInScraper()
+
+    linkedin_categories = [
+        'Software', 
+        'Backend', 
+        'Frontend', 
+        'Full Stack', 
+        'DevOps', 
+        'Cloud', 
+        'Data', 
+        'QA', 
+        'Testing', 
+        'Automation',
+        'IT'
+    ]
+    total_saved = 0
+
+    for category in linkedin_categories:
+        url = f"https://www.linkedin.com/jobs/search?keywords={category}&location={location}"
+
+        logging.info(f"   [LinkedIn] Fetching HTML content for '{category}'...")
+
+        loop = asyncio.get_running_loop()
+        html_content, driver = await loop.run_in_executor(
+            None, scraper.fetch_html_content, url
+        )
+
+        if html_content:
+            logging.info(f"   [LinkedIn] Parsing job cards for '{category}'...")
+            raw_jobs = scraper.parse_job_cards(html_content, None, tech_keywords, driver)
+
+            if raw_jobs:
+                logging.info(f"🔥 Starting async processing for {len(raw_jobs)} raw LinkedIn jobs in '{category}'...")
+                processed_jobs = await scraper.process_descriptions_await(
+                    raw_jobs, tech_keywords, batch_size=5, concurrency=2
+                )
+
+                if processed_jobs:
+                    await db_queue.put((processed_jobs, 'LinkedIn'))
+                    total_saved += len(processed_jobs)
+                    logging.info(f"   [LinkedIn Filter] Queued '{category}' for DB save ({len(processed_jobs)} jobs).")
+        else:
+            logging.error(f"[LinkedIn Error] Failed to retrieve HTML for '{category}'.")
+
+        if driver:
+            driver.quit()
+
+        logging.info("[Cooldown] Pausing 10s before next LinkedIn category...")
+        await asyncio.sleep(10)
+
+    logging.info("--- LinkedIn Scraper Finished ---")
+    return total_saved
+
 def format_duration(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
@@ -302,7 +358,8 @@ async def main():
 
     results = await asyncio.gather(
         run_ejobs(db_queue, tech_keywords),
-        run_bestjobs(db_queue, tech_keywords)
+        run_bestjobs(db_queue, tech_keywords),
+        run_linkedin(db_queue, tech_keywords)
     )
 
     total_saved_run = sum(results)
@@ -322,7 +379,6 @@ async def main():
     duration_str = format_duration(total_seconds)
 
     save_run_stats(total_saved_run, run_start_time, expired_count, duration_str)
-
     send_telegram_run_stats()
 
     db.generate_market_report()
