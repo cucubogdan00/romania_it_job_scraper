@@ -93,6 +93,7 @@ class BestJobsScraper(BaseScraper):
         headings = soup.find_all('a', class_='absolute inset-0 z-1')
     
         page_jobs = []
+        parser = JobParser()
 
         for link_tag in headings:
 
@@ -110,6 +111,9 @@ class BestJobsScraper(BaseScraper):
 
                 title_tag = card_parent.find('h2', class_ = 'line-clamp-2')
                 title_text = title_tag.get_text(strip = True) if title_tag else 'Unknown'
+
+                if parser.is_non_it_job(title_text):
+                    continue
                
                 company_tag = card_parent.find('div', class_ = 'text-ink-medium')
                 company_text = company_tag.get_text(strip = True) if company_tag else 'Unknown'

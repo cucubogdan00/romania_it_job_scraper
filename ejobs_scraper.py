@@ -64,12 +64,7 @@ class EJobsScraper(BaseScraper):
             return [], False
     
         page_jobs = []
-
-        negative_keywords = [
-            'cnc', 'operator', 'mecanic', 'tehnician', 'stivuitorist', 
-            'contabil', 'economist', 'vanzari', 'sales', 'reprezentant', 
-            'logistic', 'achizitii', 'call center', 'operator date', 'chef'
-        ]
+        parser = JobParser()
 
         for heading in headings:
 
@@ -77,8 +72,7 @@ class EJobsScraper(BaseScraper):
             if link_tag:
                 title_text = link_tag.get_text(strip = True)
 
-                title_lower = title_text.lower()
-                if any(neg_word in title_lower for neg_word in negative_keywords):
+                if parser.is_non_it_job(title_text):
                     continue
 
                 job = self.create_job_blueprint()

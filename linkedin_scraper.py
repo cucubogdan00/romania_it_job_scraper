@@ -75,6 +75,7 @@ class LinkedInScraper(BaseScraper):
 
         logging.info(f"[Soup LinkedIn] Found {len(job_cards)} raw job cards.")
         page_jobs = []
+        parser = JobParser()
 
         for card in job_cards:
             try:
@@ -95,6 +96,9 @@ class LinkedInScraper(BaseScraper):
                     continue
 
                 title_text = title_tag.get_text(strip=True)
+                if parser.is_non_it_job(title_text):
+                    continue
+
                 company_text = company_tag.get_text(strip=True) if company_tag else 'Unknown'
                 location_text = location_tag.get_text(strip=True) if location_tag else 'Romania'
                 job_url = link_tag.get('href').split('?')[0] 

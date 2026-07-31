@@ -34,7 +34,32 @@ class JobParser:
             clean_city = 'All' if work_mode == 'Remote' else 'N/A'
 
         return clean_city, work_mode
-    
+
+    def is_non_it_job(self, title_text):
+
+        if not title_text:
+            return True
+
+        title_lower = title_text.lower()
+
+        negative_keywords = [
+            'cnc', 'operator', 'mecanic', 'tehnician', 'stivuitorist', 
+            'contabil', 'economist', 'vanzari', 'sales', 'reprezentant', 
+            'logistic', 'achizitii', 'call center', 'operator date', 'chef',
+            'electrician', 'lacatus', 'sudor', 'finanzist', 'juridic', 
+            'avocat', 'marketing', 'social media', 'content creator', 'video editor',
+            'HR', 'recruiter', 'recrutare', 'ospitalier', 'ospatar', 'bucatar',
+            'profesor', 'invatator', 'educator', 'medist', 'asistent medical',
+            'constructor', 'arhitect (nu software)', 'agent', 'asigurari', 'bancar (front office)'
+        ]
+
+        for neg in negative_keywords:
+            pattern = r'\b' + re.escape(neg) + r'\b'
+            if re.search(pattern, title_lower):
+                return True
+
+        return False
+
     def find_tech_in_text(self, text, tech_keywords):
 
         found = []
