@@ -98,7 +98,7 @@ class JobDatabase:
         cursor = connection.cursor()
 
         cursor.execute(
-            "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < ?",
+            "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < datetime(?, '-1 day')",
             (run_start_time,)
             )   
         active_jobs = cursor.fetchall()
@@ -123,10 +123,22 @@ class JobDatabase:
                 logging.warning('[Warning] 429 Too Many Requests detected. Stopping verification loop to protect database integrity.')
                 break
 
-            if job_html == None or 'anuntul nu mai este activ' in job_html.lower() or 'aceasta pagina a expirat' in job_html.lower():
+            is_expired = False
+            if job_html is None:
+                is_expired = True
+            else:
+                html_lower = job_html.lower()
+                if ('anuntul nu mai este activ' in html_lower or
+                    'aceasta pagina a expirat' in html_lower or
+                    'page not found' in html_lower or
+                    'anunt indisponibil' in html_lower):
+                    is_expired = True
+
+            if is_expired:
                 expired_count += 1
                 query_update = "UPDATE jobs SET status = 'expired' WHERE id = ?"
                 cursor.execute(query_update, (job_id, ))
+                logging.info(f'       [Expired] "{job_title}" has been marked as expired in the database.')
 
         connection.commit()
         connection.close()
