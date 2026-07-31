@@ -56,7 +56,12 @@ class JobDatabase:
             tech_string = ', '.join(job['technologies'])
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            extracted_city , extracted_work_mode = parser.parse_location(job['location'])
+            extracted_city , fallback_work_mode = parser.parse_location(job['location'])
+
+            final_work_mode = job.get('work_mode', 'On-site')
+
+            if final_work_mode == 'On-site' and fallback_work_mode in ['Remote', 'Hybrid']:
+                final_work_mode = fallback_work_mode
 
             query = '''
                 INSERT INTO jobs (id, title, company, location, experience, city, work_mode, link, technologies, date_scraped, source, status)
@@ -72,7 +77,7 @@ class JobDatabase:
                 job['location'],
                 job['experience'],
                 extracted_city,
-                extracted_work_mode,
+                final_work_mode,
                 job['link'],
                 tech_string,
                 current_time,
