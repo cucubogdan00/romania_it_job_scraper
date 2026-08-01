@@ -221,7 +221,6 @@ async def run_linkedin(db_queue, tech_keywords, location="Romania"):
         logging.info("   [Cooldown - LinkedIn] Pausing 10s before next LinkedIn category...")
         await asyncio.sleep(10)
 
-    logging.info("--- LinkedIn Scraper Finished ---")
     return total_saved
 
 def format_duration(seconds):
