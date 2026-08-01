@@ -200,29 +200,3 @@ class BestJobsScraper(BaseScraper):
                     logging.warning(f"   [Parser Error BestJobs] Error extracting text details: {e}")
                     
         return processed_jobs
-
-if __name__ == "__main__":
-    real_test_db = JobDatabase("test_bestjobs.db") 
-    real_test_db.init_db()
-
-    scraper = BestJobsScraper()
-
-    tech_keywords = {
-            'python', 'sap', 'abap', 'cnc', 'siemens', 'java', 'git', 'sql', 'docker', 'linux',
-            'javascript', 'react', 'angular', 'html', 'css', 'php', 'c++', 'c#', 'ruby', 'go', 
-            'rust', 'typescript', 'vue', 'node', 'postgres', 'mongo', 'kubernetes', 'aws', 
-            'azure', 'jenkins', 'selenium', 'cypress', 'jmeter', 'wireshark', 'automation',
-            'hana', 'fiori', 'btp', 'basis', 'playwright', 'postman', 'ci/cd', 'bash', 'terraform',
-            'c-sharp', 'embedded', 'microcontroller'
-            }
-    test_url = "https://www.bestjobs.eu/locuri-de-munca/it"
-
-    print("[Test] Initializing BestJobs page download...")
-    html, live_driver = scraper.fetch_html_content(test_url)
-
-    if html and live_driver:
-        print("[Test] Starting card parsing and saving into test_bestjobs.db...")
-        total_saved = scraper.parse_job_cards(html, real_test_db, tech_keywords, live_driver)
-        print(f"\n[Test Completed] Successfully saved jobs: {total_saved}")
-    else:
-        print("[Test Failed] Could not initialize Selenium.")
