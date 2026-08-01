@@ -35,7 +35,7 @@ class BestJobsScraper(BaseScraper):
             click_count = 0
             max_clicks = 50
 
-            logging.info("   [Selenium] Starting progressive manual scroll and click loop...")
+            logging.info("   [Selenium - BestJobs] Starting progressive manual scroll and click loop...")
 
             while click_count < max_clicks:
 
@@ -55,20 +55,20 @@ class BestJobsScraper(BaseScraper):
                         time.sleep(0.4)
                         button.click()
                         click_count += 1
-                        logging.info(f"   [Selenium] Clicked 'Load more' ({click_count}/{max_clicks}). Loading next batch...")
+                        logging.info(f"   [Selenium - BestJobs] Clicked 'Load more' ({click_count}/{max_clicks}). Loading next batch...")
                         time.sleep(1.2)
                     else:
-                        logging.info("   [Pagination] 'Load more' button is hidden. Reached the end.")
+                        logging.info("   [Pagination - BestJobs] 'Load more' button is hidden. Reached the end.")
                         break
                     
                 except Exception:
-                    logging.info("   [Pagination] Reached the end of the category (Button not found anymore).")
+                    logging.info("   [Pagination - BestJobs] Reached the end of the category (Button not found anymore).")
                     break
                         
             full_html = driver.page_source
             soup = BeautifulSoup(full_html, 'html.parser')
             job_links = soup.find_all('a', class_ = 'absolute inset-0 z-1')
-            logging.info(f"\n[Soup] Total jobs loaded after deep scroll: {len(job_links)} !")
+            logging.info(f"\n[Soup - BestJobs] Total jobs loaded after deep scroll: {len(job_links)} !")
 
             return full_html, driver
 
@@ -177,7 +177,7 @@ class BestJobsScraper(BaseScraper):
 
             await asyncio.sleep(0.8)
 
-        logging.info(f"   [Parser Engine BestJobs] Starting analytical parsing for {len(job_list)} fetched pages...")
+        logging.info(f"   [Parser Engine - BestJobs] Starting analytical parsing for {len(job_list)} fetched pages...")
         for job in job_list:
             if 'raw_html_desc' in job and job['raw_html_desc']:
                   

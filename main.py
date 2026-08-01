@@ -90,7 +90,7 @@ async def run_ejobs(db_queue, tech_keywords):
 
                 page_jobs, has_cards = ejobs_scraper.parse_job_cards(html_data, None, tech_keywords)
                 if not has_cards:
-                    logging.info(f"No jobs found on page {page_number}. Reached end of category {category}.")
+                    logging.info(f"   [eJobs] No jobs found on page {page_number}. Reached end of category {category}.")
                     break
                 
                 raw_category_jobs.extend(page_jobs)
@@ -102,14 +102,14 @@ async def run_ejobs(db_queue, tech_keywords):
                 try:
                     session_cookies = ejobs_driver.get_cookies()
                     session_user_agent = ejobs_driver.execute_script("return navigator.userAgent;")
-                    logging.info(f"   [Session] Captured {len(session_cookies)} cookies + real UA "
+                    logging.info(f"   [Session - eJobs] Captured {len(session_cookies)} cookies + real UA "
                                 f"from the browser session for category '{category}'.")
                 except Exception as e:
-                    logging.warning(f"   [Session] Could not capture cookies/UA from Selenium: {e}")
+                    logging.warning(f"   [Session - eJobs] Could not capture cookies/UA from Selenium: {e}")
                 ejobs_driver.quit()
             
         if raw_category_jobs:
-            logging.info(f" Starting async processing for {len(raw_category_jobs)} raw eJobs...")
+            logging.info(f"🔥 Starting async processing for {len(raw_category_jobs)} raw eJobs jobs in '{category}'...")
             processed_jobs = await ejobs_scraper.process_descriptions_await(raw_category_jobs, tech_keywords,batch_size= 5, concurrency= 1 , max_retries= 1,cookies= session_cookies, user_agent=session_user_agent)
             lost_count = len(raw_category_jobs) - len(processed_jobs)
             logging.info(f"[eJobs Category Summary] '{category}': raw={len(raw_category_jobs)} "
@@ -119,7 +119,7 @@ async def run_ejobs(db_queue, tech_keywords):
                 total_saved += len(processed_jobs)
                 logging.info(f"   [eJobs Filter] Queued '{category}' for DB save ({len(processed_jobs)} jobs).")
         
-        logging.info("[Cooldown] Pausing 8s before next eJobs category...")
+        logging.info(f"   [Cooldown - eJobs] Pausing 8s before next eJobs category...")
         await asyncio.sleep(5) 
 
     return total_saved
@@ -154,7 +154,7 @@ async def run_bestjobs(db_queue, tech_keywords):
             raw_bj_jobs = bestjobs_scraper.parse_job_cards(bestjobs_html, None, tech_keywords, live_driver)
 
             if raw_bj_jobs and isinstance(raw_bj_jobs, list):
-                logging.info(f"🔥 Starting async processing for {len(raw_bj_jobs)} raw BestJobs...")
+                logging.info(f"🔥 Starting async processing for {len(raw_bj_jobs)} raw BestJobs jobs in '{category}'...")
                 processed_bj_jobs = await bestjobs_scraper.process_descriptions_await(raw_bj_jobs, tech_keywords)
 
                 if processed_bj_jobs:
@@ -170,7 +170,6 @@ async def run_bestjobs(db_queue, tech_keywords):
     return total_saved
 
 async def run_linkedin(db_queue, tech_keywords, location="Romania"):
-    logging.info("--- Starting LinkedIn Scraper ---")
     scraper = LinkedInScraper()
 
     linkedin_categories = [
@@ -219,7 +218,7 @@ async def run_linkedin(db_queue, tech_keywords, location="Romania"):
         if driver:
             driver.quit()
 
-        logging.info("[Cooldown] Pausing 10s before next LinkedIn category...")
+        logging.info("   [Cooldown - LinkedIn] Pausing 10s before next LinkedIn category...")
         await asyncio.sleep(10)
 
     logging.info("--- LinkedIn Scraper Finished ---")

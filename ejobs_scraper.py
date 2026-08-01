@@ -36,7 +36,7 @@ class EJobsScraper(BaseScraper):
             for i in range(7):
                 current_pixel = (i + 1) * 1500
                 driver.execute_script(f'window.scrollTo(0, {current_pixel});')
-                logging.info(f'      [Selenium] Incremental scroll to {current_pixel}px ({i+1}/7)...')
+                logging.info(f'      [Selenium - eJobs] Incremental scroll to {current_pixel}px ({i+1}/7)...')
                 time.sleep(1.2)
             
             full_html = driver.page_source
@@ -180,7 +180,7 @@ class EJobsScraper(BaseScraper):
                              f"(persistent 429/network failures). These are skipped, not saved.")
 
         fetched_count = len(job_list) - len(pending_jobs)
-        logging.info(f"   [Parser Engine] Starting analytical parsing for {fetched_count} fetched pages...")
+        logging.info(f"   [Parser Engine - eJobs] Starting analytical parsing for {fetched_count} fetched pages...")
 
         for job in job_list:
 

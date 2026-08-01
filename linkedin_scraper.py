@@ -29,7 +29,7 @@ class LinkedInScraper(BaseScraper):
             time.sleep(3.0)
 
             scroll_attempts = 50
-            logging.info("   [Selenium LinkedIn] Starting scroll down loop to load jobs...")
+            logging.info("   [Selenium - LinkedIn] Starting scroll down loop to load jobs...")
 
             last_height = driver.execute_script("return document.body.scrollHeight")
             
@@ -42,14 +42,14 @@ class LinkedInScraper(BaseScraper):
                     if load_more_btn.is_displayed():
                         driver.execute_script("arguments[0].click();", load_more_btn)
                         time.sleep(2.0)
-                        logging.info("   [Selenium LinkedIn] Clicked 'Load More' button.")
+                        logging.info("   [Selenium - LinkedIn] Clicked 'Load More' button.")
                 except Exception:
                     pass 
 
                 new_height = driver.execute_script("return document.body.scrollHeight")
 
                 if new_height == last_height:
-                    logging.info(f"   [Selenium LinkedIn] End of jobs reached after {i+1} scrolls. Stopping.")
+                    logging.info(f"   [Selenium - LinkedIn] End of jobs reached after {i+1} scrolls. Stopping.")
                     break
 
                 last_height = new_height
@@ -73,7 +73,7 @@ class LinkedInScraper(BaseScraper):
         if not job_cards:
             job_cards = soup.find_all('li', class_='result-card')
 
-        logging.info(f"[Soup LinkedIn] Found {len(job_cards)} raw job cards.")
+        logging.info(f"[Soup - LinkedIn] Found {len(job_cards)} raw job cards.")
         page_jobs = []
         parser = JobParser()
 
@@ -152,7 +152,7 @@ class LinkedInScraper(BaseScraper):
 
         await asyncio.sleep(random.uniform(3.0, 6.0))
         
-        logging.info(f"   [Parser Engine LinkedIn] Analyzing descriptions for fetched pages...")
+        logging.info(f"   [Parser Engine - LinkedIn] Analyzing descriptions for fetched pages...")
         for job in job_list:
             if 'raw_html_desc' in job and job['raw_html_desc']:
                 try:
