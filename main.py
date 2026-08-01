@@ -58,7 +58,7 @@ async def run_ejobs(db_queue, tech_keywords):
     total_saved = 0
 
     for category in ejobs_categories:
-        logging.info(f"\n🚀 Switching to category: {category.upper()} 🚀")
+        logging.info(f"\n🚀 Switching to eJobs category: {category.upper()} 🚀")
         base_url = f'https://www.ejobs.ro/locuri-de-munca/{category}'
 
         raw_category_jobs = []
@@ -141,6 +141,8 @@ async def run_bestjobs(db_queue, tech_keywords):
         logging.info(f"\n🚀 Switching to BestJobs category: {category.upper()} 🚀")
         current_url = f"https://www.bestjobs.eu/locuri-de-munca/{category}"
 
+        logging.info(f"   [BestJobs] Fetching HTML content for '{category}'...")
+
         loop = asyncio.get_running_loop()
         bestjobs_html , live_driver = await loop.run_in_executor(
             None, bestjobs_scraper.fetch_html_content,current_url
@@ -187,6 +189,7 @@ async def run_linkedin(db_queue, tech_keywords, location="Romania"):
     total_saved = 0
 
     for category in linkedin_categories:
+        logging.info(f"\n🚀 Switching to LinkedIn category: {category.upper()} 🚀")
         url = f"https://www.linkedin.com/jobs/search?keywords={category}&location={location}"
 
         logging.info(f"   [LinkedIn] Fetching HTML content for '{category}'...")
