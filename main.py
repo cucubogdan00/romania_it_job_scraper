@@ -15,7 +15,9 @@ from bestjobs_scraper import BestJobsScraper
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from linkedin_scraper import LinkedInScraper
+from dotenv import load_dotenv
 
+load_dotenv()
 
 logging.basicConfig(
     level = logging.INFO,
@@ -237,8 +239,12 @@ def format_duration(seconds):
 
 def send_telegram_run_stats():
 
-    TOKEN = "8938481800:AAH-WeMU959MYdKP77jm9X8KiAzYqR1D5H8"
-    CHAT_ID = "8146994453"
+    TOKEN = os.getenv("TELEGRAM_TOKEN")
+    CHAT_ID = os.getenv("TELEGRAM_CHAT")
+
+    if not TOKEN or not CHAT_ID:
+        logging.warning("[Telegram] Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID in environment variables. Skipping notification.")
+        return
 
     filename = "run_stats.json"
     if not os.path.exists(filename):
