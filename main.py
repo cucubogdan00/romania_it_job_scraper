@@ -379,8 +379,7 @@ async def main():
 
     logging.info(f'\nTotal IT jobs saved during this run: {total_saved_run}')
 
-    ejobs_scraper_instance = EJobsScraper()
-    expired_count = db.check_expired_jobs(ejobs_scraper_instance.fetch_description_html_fast, run_start_time)
+    expired_count = await db.check_expired_jobs_async(run_start_time)
 
     total_seconds = time.time() - start_time_seconds
     duration_str = format_duration(total_seconds)

@@ -1,10 +1,12 @@
 import sqlite3
 import time
 import logging
+import asyncio
+import random
 
 from parser import JobParser
 from datetime import datetime
-
+from curl_cffi.requests import AsyncSession
 class JobDatabase:
     
     def __init__(self, db_name = 'jobs.db'):
@@ -95,7 +97,7 @@ class JobDatabase:
         logging.info(f'[SQL Database] Done! Out of {len(job_list)} filtered jobs, {saved_count} were NEW and successfully saved.')
 
 
-    def check_expired_jobs(self, fetch_func, run_start_time):
+    async def check_expired_jobs_async(self, run_start_time):
 
         logging.info('\n[Checker] Starting verification of active jobs for expiration...')
 
@@ -111,44 +113,61 @@ class JobDatabase:
         if not active_jobs:
             logging.info('[Checker] No active jobs found in the database to verify.')
             connection.close()
-            return
+            return 0
         
-        logging.info(f'[Checker] Found {len(active_jobs)} active jobs to check on the website.')
+        logging.info(f'[Checker] Found {len(active_jobs)} active jobs to check. Firing up async workers...')
 
-        expired_count = 0
+        expired_ids = []
+        semaphore = asyncio.Semaphore(5)
 
-        for job_id, job_url, job_title in active_jobs:
-            logging.info(f'       [Checking] "{job_title}"...')
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
 
-            job_html = fetch_func(job_url)
+        async def check_job(session, job_id, job_url, job_title):
+            async with semaphore:
+                try:
+                    response = await session.get(job_url, headers=headers, impersonate='chrome', timeout=15)
 
-            time.sleep(1.5)
+                    if response.status_code == 429:
+                        logging.warning(f'[Checker] 429 Too Many Requests on: {job_url}')
+                        await asyncio.sleep(5)
+                        return
 
-            if job_html == 'BLOCKED_429':
-                logging.warning('[Warning] 429 Too Many Requests detected. Stopping verification loop to protect database integrity.')
-                break
+                    html_lower = response.text.lower()
+                    if ('anuntul nu mai este activ' in html_lower or
+                        'aceasta pagina a expirat' in html_lower or
+                        'page not found' in html_lower or
+                        'anunt indisponibil' in html_lower):
+                        
+                        expired_ids.append((job_id,))
+                        logging.info(f'       [Expired] "{job_title}" marked as expired.')
+                        
+                except Exception as e:
+                    if '404' in str(e):
+                        expired_ids.append((job_id,))
+                        logging.info(f'       [Expired - 404] "{job_title}" marked as expired.')
 
-            is_expired = False
-            if job_html is None:
-                is_expired = True
-            else:
-                html_lower = job_html.lower()
-                if ('anuntul nu mai este activ' in html_lower or
-                    'aceasta pagina a expirat' in html_lower or
-                    'page not found' in html_lower or
-                    'anunt indisponibil' in html_lower):
-                    is_expired = True
+                await asyncio.sleep(random.uniform(2.5, 4.0))
 
-            if is_expired:
-                expired_count += 1
-                query_update = "UPDATE jobs SET status = 'expired' WHERE id = ?"
-                cursor.execute(query_update, (job_id, ))
-                logging.info(f'       [Expired] "{job_title}" has been marked as expired in the database.')
+        batch_size = 20
+        async with AsyncSession() as session:
+            for i in range(0, len(active_jobs), batch_size):
+                batch = active_jobs[i:i + batch_size]
+                tasks = [check_job(session, job_id, job_url, job_title) for job_id, job_url, job_title in batch]
+                await asyncio.gather(*tasks)    
+
+                logging.info(f'       [Checker Cooldown] Batch {i//batch_size + 1} completed. Pausing for 5 seconds...')
+                await asyncio.sleep(5)
+
+        if expired_ids:
+            cursor.executemany("UPDATE jobs SET status = 'expired' WHERE id = ?", expired_ids)
+            logging.info(f'[Checker] Successfully updated {len(expired_ids)} expired jobs in the database.')
 
         connection.commit()
         connection.close()
 
-        return expired_count
+        return len(expired_ids)
 
     def generate_market_report(self):
 
