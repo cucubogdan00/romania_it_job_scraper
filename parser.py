@@ -204,3 +204,43 @@ class JobParser:
         found_tech = self.find_tech_in_text(full_text, tech_keywords)
         
         return found_tech, experience_text, work_mode_text, location_text
+
+    def extract_data_from_linkedin_description(self, html_content, title, tech_keywords):
+
+        if not html_content:
+            return [], 'Unknown', 'Unknown'
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+        desc_container = soup.find('div', class_= 'description__text') or soup.find('section', class_='show-more-less-html')
+        full_text = desc_container.get_text(separator=' ', strip=True).lower() if desc_container else soup.get_text().lower()
+
+        found_tech = self.find_tech_in_text(full_text, tech_keywords)
+        
+        work_mode = 'Remote' if 'remote' in full_text else ('Hybrid' if 'hibrid' in full_text or 'hybrid' in full_text else 'On-site')
+
+        experience = 'Unknown'
+        title_lower = title.lower()
+        
+        if any(word in title_lower for word in ['senior', 'lead', 'principal', 'head', 'architect', 'manager', 'director']):
+            experience = 'Senior-Level (> 5 ani)'
+        elif any(word in title_lower for word in ['junior', 'trainee', 'intern', 'entry', 'graduate', 'începător']):
+            experience = 'Entry-Level (< 2 ani)'
+        elif any(word in title_lower for word in ['mid', 'middle']):
+            experience = 'Mid-Level (2-5 ani)'
+        else:
+            criteria_list = soup.find_all('ul', class_= 'description__job-criteria-list')
+            if criteria_list:
+                first_criteria = criteria_list[0].find('li', class_='description__job-criteria-item')
+                if first_criteria: 
+                    exp_span = first_criteria.find('span', class_='description__job-criteria-text--criteria')
+                    if exp_span:
+                        exp_text = exp_span.get_text(strip=True).lower()
+
+                        if 'începător' in exp_text or 'entry' in exp_text or 'intern' in exp_text or 'stagiar' in exp_text:
+                            experience = 'Entry-Level (< 2 ani)'
+                        elif 'superior' in exp_text or 'director' in exp_text or 'executive' in exp_text:
+                            experience = 'Senior-Level (> 5 ani)'
+                        elif 'mediu' in exp_text or 'mid' in exp_text or 'associate' in exp_text:
+                            experience = 'Mid-Level (2-5 ani)'
+
+        return found_tech, experience, work_mode

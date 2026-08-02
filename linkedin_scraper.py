@@ -157,40 +157,13 @@ class LinkedInScraper(BaseScraper):
             if 'raw_html_desc' in job and job['raw_html_desc']:
                 try:
                     html_content = job['raw_html_desc']
+
+                    techs, exp, mode = parser.extract_data_from_linkedin_description(html_content, job['title'], tech_keywords)
+
+                    job['technologies'] = techs
+                    job['experience'] = exp
+                    job['work_mode'] = mode
                     
-                    soup = BeautifulSoup(html_content, 'html.parser')
-                    desc_container = soup.find('div', class_='description__text') or soup.find('section', class_='show-more-less-html')
-                    full_text = desc_container.get_text(separator=' ', strip=True).lower() if desc_container else soup.get_text().lower()
-
-                    job['technologies'] = parser.find_tech_in_text(full_text, tech_keywords)
-                    
-                    job['work_mode'] = 'Remote' if 'remote' in full_text else ('Hybrid' if 'hibrid' in full_text or 'hybrid' in full_text else 'On-site')
-
-                    job['experience'] = 'Unknown'
-                    title_lower = job['title'].lower()
-                    
-                    if any(word in title_lower for word in ['senior', 'lead', 'principal', 'head', 'architect', 'manager', 'director']):
-                        job['experience'] = 'Senior-Level (> 5 ani)'
-                    elif any(word in title_lower for word in ['junior', 'trainee', 'intern', 'entry', 'graduate', 'începător']):
-                        job['experience'] = 'Entry-Level (< 2 ani)'
-                    elif any(word in title_lower for word in ['mid', 'middle']):
-                        job['experience'] = 'Mid-Level (2-5 ani)'
-                    else:
-                        criteria_list = soup.find_all('ul', class_= 'description__job-criteria-list')
-                        if criteria_list:
-                            first_criteria = criteria_list[0].find('li', class_='description__job-criteria-item')
-                            if first_criteria: 
-                                exp_span = first_criteria.find('span', class_='description__job-criteria-text--criteria')
-                                if exp_span:
-                                    exp_text = exp_span.get_text(strip=True).lower()
-
-                                    if 'începător' in exp_text or 'entry' in exp_text or 'intern' in exp_text or 'stagiar' in exp_text:
-                                        job['experience'] = 'Entry-Level (< 2 ani)'
-                                    elif 'superior' in exp_text or 'director' in exp_text or 'executive' in exp_text:
-                                        job['experience'] = 'Senior-Level (> 5 ani)'
-                                    elif 'mediu' in exp_text or 'mid' in exp_text or 'associate' in exp_text:
-                                        job['experience'] = 'Mid-Level (2-5 ani)'
-
                     del job['raw_html_desc']
 
                     if job['technologies']:
