@@ -149,9 +149,9 @@ class BestJobsScraper(BaseScraper):
         pending_jobs = list(job_list)
 
         headers = {
-            'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language' : 'ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Upgrade-Insecure-Requests': '1'
         }
 
         semaphore = asyncio.Semaphore(concurrency)
@@ -159,7 +159,7 @@ class BestJobsScraper(BaseScraper):
         async def worker(session, job):
             async with semaphore:
                 try:
-                    html_desc = await self.fetch_description_html_async(session, job['link'])
+                    html_desc = await self.fetch_description_html_curl(session, job['link'], headers=headers, impersonate = 'chrome120')
 
                     if html_desc and html_desc != 'BLOCKED_429':
                         job['raw_html_desc'] = html_desc
@@ -171,7 +171,7 @@ class BestJobsScraper(BaseScraper):
         for i in range(0, len(job_list), batch_size):
             batch = job_list[i:i + batch_size]
 
-            async with aiohttp.ClientSession() as session:
+            async with AsyncSession() as session:
                 tasks = [worker(session, job) for job in batch]
                 await asyncio.gather(*tasks)
 

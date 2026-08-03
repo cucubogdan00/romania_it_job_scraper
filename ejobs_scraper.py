@@ -146,7 +146,7 @@ class EJobsScraper(BaseScraper):
             async def worker(session, job):
                 async with semaphore:
                     try:
-                        html_desc = await self.fetch_description_html_curl(session, job['link'], headers= headers, cookies = cookie_dict)
+                        html_desc = await self.fetch_description_html_curl(session, job['link'], headers= headers, cookies = cookie_dict, impersonate = 'chrome120')
                         if html_desc and html_desc != 'BLOCKED_429':
                             job['raw_html_desc'] = html_desc
                         else:
