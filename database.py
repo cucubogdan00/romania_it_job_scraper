@@ -105,7 +105,7 @@ class JobDatabase:
         cursor = connection.cursor()
 
         cursor.execute(
-            "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < datetime(?, '-1 day')",
+            "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < datetime(?, '-7 days')",
             (run_start_time,)
             )   
         active_jobs = cursor.fetchall()
@@ -118,52 +118,79 @@ class JobDatabase:
         logging.info(f'[Checker] Found {len(active_jobs)} active jobs to check. Firing up async workers...')
 
         expired_ids = []
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(3)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
 
+        expired_keywords = [
+            'anuntul nu mai este activ', 
+            'aceasta pagina a expirat', 
+            'page not found', 
+            'anunt indisponibil',
+            'acest anunt a expirat',
+            'nu mai este disponibil',
+            'no longer accepting applications',
+            'this job is no longer available',
+            'job is closed',
+            'job nu mai este valabil',
+            'postul nu mai este disponibil'
+        ]
+
         async def check_job(session, job_id, job_url, job_title):
+            max_retries = 3
+
             async with semaphore:
-                try:
-                    response = await session.get(job_url, headers=headers, impersonate='chrome', timeout=15)
+                for attempt in range(1,max_retries + 1):
+                    try:
+                        response = await session.get(job_url, headers=headers, impersonate='chrome', timeout=20, allow_redirects=True)
 
-                    if response.status_code == 429:
-                        logging.warning(f'[Checker] 429 Too Many Requests on: {job_url}')
-                        await asyncio.sleep(5)
-                        return
+                        if response.status_code == 429:
+                            wait_time = 15 * attempt
+                            logging.warning(f'[Checker] 429 Too Many Requests on: {job_url}')
+                            await asyncio.sleep(wait_time)
+                            continue
 
-                    html_lower = response.text.lower()
-                    if ('anuntul nu mai este activ' in html_lower or
-                        'aceasta pagina a expirat' in html_lower or
-                        'page not found' in html_lower or
-                        'anunt indisponibil' in html_lower):
-                        
-                        expired_ids.append((job_id,))
-                        logging.info(f'       [Expired] "{job_title}" marked as expired.')
-                        
-                except Exception as e:
-                    if '404' in str(e):
-                        expired_ids.append((job_id,))
-                        logging.info(f'       [Expired - 404] "{job_title}" marked as expired.')
+                        if response.status_code in [404, 410]:
+                            expired_ids.append((job_id,))
+                            logging.info(f'       [Expired - HTTP 404] "{job_title}" marked as expired.')
+                            break
 
-                await asyncio.sleep(random.uniform(2.5, 4.0))
+                        html_lower = response.text.lower()
 
-        batch_size = 20
+                        is_expired = any(keyword in html_lower for keyword in expired_keywords)
+
+                        if is_expired or (('linkedin.com/jobs/view' in job_url) and ('linkedin.com/jobs/search' in response.url)):
+                            expired_ids.append((job_id,))
+                            logging.info(f'       [Expired - Keyword/Redirect] "{job_title}" marked as expired.')
+
+                        break
+                            
+                    except Exception as e:
+                        if attempt < max_retries:
+                            await asyncio.sleep(5)
+                        else:
+                            logging.warning(f'       [Checker Network Fail] Could not load {job_url} after {max_retries} attempts.')
+
+                await asyncio.sleep(random.uniform(3.0, 5.0))
+
+        batch_size = 15
         async with AsyncSession() as session:
             for i in range(0, len(active_jobs), batch_size):
                 batch = active_jobs[i:i + batch_size]
                 tasks = [check_job(session, job_id, job_url, job_title) for job_id, job_url, job_title in batch]
                 await asyncio.gather(*tasks)    
 
-                logging.info(f'       [Checker Cooldown] Batch {i//batch_size + 1} completed. Pausing for 5 seconds...')
-                await asyncio.sleep(5)
+                logging.info(f'       [Checker Cooldown] Batch {i//batch_size + 1} / {(len(active_jobs)//batch_size) + 1} completed. Pausing for 10 seconds...')
+                await asyncio.sleep(10)
 
         if expired_ids:
             cursor.executemany("UPDATE jobs SET status = 'expired' WHERE id = ?", expired_ids)
             logging.info(f'[Checker] Successfully updated {len(expired_ids)} expired jobs in the database.')
-
+        else:
+            logging.info('[Checker] No expired jobs found during this run.')
+            
         connection.commit()
         connection.close()
 
