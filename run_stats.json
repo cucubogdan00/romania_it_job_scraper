@@ -54,5 +54,12 @@
         "total_active_jobs": 4934,
         "expired_found": 0,
         "duration": "2h 10m 35s"
+    },
+    {
+        "date_scraped": "2026-08-05 18:29:00",
+        "total_saved": 4541,
+        "total_active_jobs": 5140,
+        "expired_found": 0,
+        "duration": "2h 32m 37s"
     }
 ]
