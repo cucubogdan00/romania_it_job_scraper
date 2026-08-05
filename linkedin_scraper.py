@@ -10,6 +10,8 @@ from selenium.webdriver.common.by import By
 from base_scraper import BaseScraper
 from parser import JobParser
 from curl_cffi.requests import AsyncSession
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class LinkedInScraper(BaseScraper):
 
@@ -26,7 +28,8 @@ class LinkedInScraper(BaseScraper):
         try:
             driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
-            time.sleep(3.0)
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            time.sleep(0.5)
 
             scroll_attempts = 50
             logging.info("   [Selenium - LinkedIn] Starting scroll down loop to load jobs...")

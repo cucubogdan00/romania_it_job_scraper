@@ -12,6 +12,8 @@ from base_scraper import BaseScraper
 from parser import JobParser
 from database import JobDatabase
 from curl_cffi.requests import AsyncSession
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class BestJobsScraper(BaseScraper):
 
@@ -29,7 +31,8 @@ class BestJobsScraper(BaseScraper):
         try:
             driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
-            time.sleep(2.0)
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            time.sleep(0.5)
 
             click_count = 0
             max_clicks = 50
