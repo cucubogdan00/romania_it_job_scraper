@@ -1,6 +1,5 @@
 import time
 import logging
-import aiohttp
 import asyncio
 import random
 
