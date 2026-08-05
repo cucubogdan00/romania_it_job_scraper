@@ -15,9 +15,9 @@ SELENIUM_WAIT_TIMEOUT = 10
 # ==========================================
 # Platform-Specific Scraping Settings
 # ==========================================
-# eJobs
-EJOBS_CONCURRENCY = 3
-EJOBS_BATCH_SIZE = 10
+# eJobs (kept lower to strictly avoid 429 rate limit blocks)
+EJOBS_CONCURRENCY = 2
+EJOBS_BATCH_SIZE = 5
 EJOBS_MAX_RETRIES = 1
 
 # BestJobs
