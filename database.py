@@ -15,29 +15,28 @@ class JobDatabase:
 
     
     def init_db(self):
+        with sqlite3.connect(self.db_name) as connection:
+            cursor = connection.cursor()
 
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS jobs(
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    company TEXT,
+                    location TEXT,
+                    experience TEXT,
+                    city TEXT,
+                    work_mode TEXT,
+                    link TEXT,
+                    technologies TEXT,
+                    date_scraped TEXT,
+                    source TEXT,
+                    status TEXT DEFAULT 'active'
+                )
+            ''')
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS jobs(
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                company TEXT,
-                location TEXT,
-                experience TEXT,
-                city TEXT,
-                work_mode TEXT,
-                link TEXT,
-                technologies TEXT,
-                date_scraped TEXT,
-                source TEXT,
-                status TEXT DEFAULT 'active'
-            )
-        ''')
-
-        connection.commit()
-        connection.close()
+            connection.commit()
+    
         logging.info(f'[SQL Database] Initialized successfully. Table "jobs" is ready.')
 
         
@@ -46,54 +45,52 @@ class JobDatabase:
         if not job_list :
             logging.info('[SQL] No jobs to save.')
             return
-        
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
 
         saved_count = 0
-        
         parser = JobParser()
 
-        for job in job_list:
+        with sqlite3.connect(self.db_name) as connection:
+            cursor = connection.cursor()
 
-            tech_string = ', '.join(job['technologies'])
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            for job in job_list:
 
-            extracted_city , fallback_work_mode = parser.parse_location(job['location'])
+                tech_string = ', '.join(job['technologies'])
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            final_work_mode = job.get('work_mode', 'On-site')
+                extracted_city , fallback_work_mode = parser.parse_location(job['location'])
 
-            if final_work_mode == 'On-site' and fallback_work_mode in ['Remote', 'Hybrid']:
-                final_work_mode = fallback_work_mode
+                final_work_mode = job.get('work_mode', 'On-site')
 
-            query = '''
-                INSERT INTO jobs (id, title, company, location, experience, city, work_mode, link, technologies, date_scraped, source, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (id) DO UPDATE SET status = 'active' , date_scraped = ?, source = ?
-            
-            '''
+                if final_work_mode == 'On-site' and fallback_work_mode in ['Remote', 'Hybrid']:
+                    final_work_mode = fallback_work_mode
 
-            cursor.execute(query, (
-                job['id'],
-                job['title'],
-                job['company'],
-                job['location'],
-                job['experience'],
-                extracted_city,
-                final_work_mode,
-                job['link'],
-                tech_string,
-                current_time,
-                source_name,
-                'active',
-                current_time,
-                source_name
-            ))
+                query = '''
+                    INSERT INTO jobs (id, title, company, location, experience, city, work_mode, link, technologies, date_scraped, source, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO UPDATE SET status = 'active' , date_scraped = ?, source = ?
+                
+                '''
 
-            saved_count += 1
+                cursor.execute(query, (
+                    job['id'],
+                    job['title'],
+                    job['company'],
+                    job['location'],
+                    job['experience'],
+                    extracted_city,
+                    final_work_mode,
+                    job['link'],
+                    tech_string,
+                    current_time,
+                    source_name,
+                    'active',
+                    current_time,
+                    source_name
+                ))
 
-        connection.commit()
-        connection.close()
+                saved_count += 1
+
+            connection.commit()
 
         logging.info(f'[SQL Database] Done! Out of {len(job_list)} filtered jobs, {saved_count} were NEW and successfully saved.')
 
@@ -102,18 +99,17 @@ class JobDatabase:
 
         logging.info('\n[Checker] Starting verification of active jobs for expiration...')
 
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
+        with sqlite3.connect(self.db_name) as connection:
+            cursor = connection.cursor()
 
-        cursor.execute(
-            "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < datetime(?, '-7 days')",
-            (run_start_time,)
-            )   
-        active_jobs = cursor.fetchall()
+            cursor.execute(
+                "SELECT id, link, title FROM jobs WHERE status = 'active' and date_scraped < datetime(?, '-7 days')",
+                (run_start_time,)
+                )   
+            active_jobs = cursor.fetchall()
 
         if not active_jobs:
             logging.info('[Checker] No active jobs found in the database to verify.')
-            connection.close()
             return 0
         
         logging.info(f'[Checker] Found {len(active_jobs)} active jobs to check. Firing up async workers...')
@@ -189,74 +185,74 @@ class JobDatabase:
                 await asyncio.sleep(10)
 
         if expired_ids:
-            cursor.executemany("UPDATE jobs SET status = 'expired' WHERE id = ?", expired_ids)
+            with sqlite3.connect(self.db_name) as connection:
+                cursor = connection.cursor()
+                cursor.executemany("UPDATE jobs SET status = 'expired' WHERE id = ?", expired_ids)
+                connection.commit()
             logging.info(f'[Checker] Successfully updated {len(expired_ids)} expired jobs in the database.')
         else:
             logging.info('[Checker] No expired jobs found during this run.')
-            
-        connection.commit()
-        connection.close()
 
         return len(expired_ids)
 
     def generate_market_report(self):
 
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
+        with sqlite3.connect(self.db_name) as connection:
+            cursor = connection.cursor()
 
-        cursor.execute("SELECT technologies FROM jobs WHERE status = 'active'")
-        active_jobs_tech = cursor.fetchall()
+            cursor.execute("SELECT technologies FROM jobs WHERE status = 'active'")
+            active_jobs_tech = cursor.fetchall()
 
-        tech_counts = {}
+            tech_counts = {}
 
-        for row in active_jobs_tech:
-            tech_string = row[0]
-            if tech_string:
-                technologies = tech_string.split(', ')
+            for row in active_jobs_tech:
+                tech_string = row[0]
+                if tech_string:
+                    technologies = tech_string.split(', ')
 
-                for tech in technologies:
-                    if tech in tech_counts:
-                        tech_counts[tech] += 1
-                    else:
-                        tech_counts[tech] = 1
+                    for tech in technologies:
+                        if tech in tech_counts:
+                            tech_counts[tech] += 1
+                        else:
+                            tech_counts[tech] = 1
+        
+            sorted_tech = sorted(tech_counts.items() , key = lambda item : item[1], reverse = True)
+            logging.info('\n' + "=" * 40)
+            logging.info('   📊 ACTIVE JOB MARKET REPORT 📊   ')
+            logging.info('=' * 40)
+
+            for technology, count in sorted_tech:
+                logging.info(f' {technology.upper()} : {count} jobs')
+
+            logging.info('=' * 40 + '\n')
+
+
+            cursor.execute("SELECT work_mode, COUNT(*) FROM jobs WHERE status = 'active' GROUP BY work_mode")
+            mode_counts = cursor.fetchall()
+
+            mode_emojis = {
+                'Remote' : '🏠 REMOTE',
+                'Hybrid' : '🤝 HYBRID',
+                'On-site' : '🏢 ON-SITE'
+            }
+
+            logging.info('=' * 40)
+            logging.info("   🏢 WORK MODE DISTRIBUTION 🏢   ")
+            logging.info("=" * 40)
+            for mode, count in mode_counts:
+                display_name = mode_emojis.get(mode, mode.upper())
+                logging.info(f' {display_name} : {count} jobs' )
+
+            cursor.execute("SELECT experience , COUNT(*) FROM jobs WHERE status = 'active' GROUP BY experience")
+            experience_counts = cursor.fetchall()
+
+            logging.info('\n' + "=" * 40)
+            logging.info("   📊 EXPERIENCE LEVEL DISTRIBUTION 📊   ") 
+            logging.info("=" * 40)
+            for exp_level, count in experience_counts:
+                display_level = exp_level if exp_level else 'UNKNOWN'
+                logging.info(f' 📊{display_level} : {count} jobs')
+
+            logging.info("=" * 40)
+
     
-        sorted_tech = sorted(tech_counts.items() , key = lambda item : item[1], reverse = True)
-        logging.info('\n' + "=" * 40)
-        logging.info('   📊 ACTIVE JOB MARKET REPORT 📊   ')
-        logging.info('=' * 40)
-
-        for technology, count in sorted_tech:
-            logging.info(f' {technology.upper()} : {count} jobs')
-
-        logging.info('=' * 40 + '\n')
-
-
-        cursor.execute("SELECT work_mode, COUNT(*) FROM jobs WHERE status = 'active' GROUP BY work_mode")
-        mode_counts = cursor.fetchall()
-
-        mode_emojis = {
-            'Remote' : '🏠 REMOTE',
-            'Hybrid' : '🤝 HYBRID',
-            'On-site' : '🏢 ON-SITE'
-        }
-
-        logging.info('=' * 40)
-        logging.info("   🏢 WORK MODE DISTRIBUTION 🏢   ")
-        logging.info("=" * 40)
-        for mode, count in mode_counts:
-            display_name = mode_emojis.get(mode, mode.upper())
-            logging.info(f' {display_name} : {count} jobs' )
-
-        cursor.execute("SELECT experience , COUNT(*) FROM jobs WHERE status = 'active' GROUP BY experience")
-        experience_counts = cursor.fetchall()
-
-        logging.info('\n' + "=" * 40)
-        logging.info("   📊 EXPERIENCE LEVEL DISTRIBUTION 📊   ") 
-        logging.info("=" * 40)
-        for exp_level, count in experience_counts:
-            display_level = exp_level if exp_level else 'UNKNOWN'
-            logging.info(f' 📊{display_level} : {count} jobs')
-
-        logging.info("=" * 40)
-
-        connection.close()
