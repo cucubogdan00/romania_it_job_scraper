@@ -3,6 +3,9 @@ import requests
 import logging
 import aiohttp
 import asyncio
+import random 
+
+from curl_cffi.requests import AsyncSession
 class BaseScraper:
 
     def create_job_blueprint(self):
@@ -95,4 +98,57 @@ class BaseScraper:
             logging.error(f'[curl_cffi Error] {error} for URL: {url}')
             return None
 
+    async def fetch_all_descriptions_generic(self, job_list, headers=None, cookies=None, impersonate='chrome120', concurrency=5, batch_size=10, max_retries=0):
+        if not job_list:
+            return []
+            
+        pending_jobs = list(job_list)
+        
+        for attempt in range(max_retries + 1):
+            if not pending_jobs:
+                break
+                
+            if attempt > 0:
+                cooldown = 15 * attempt
+                logging.warning(f"   [Retry Round {attempt}] Re-attempting {len(pending_jobs)} jobs. Cooling down {cooldown}s...")
+                await asyncio.sleep(cooldown)
+                
+            next_pending = []
+            semaphore = asyncio.Semaphore(concurrency)
+            
+            async def worker(session, job):
+                async with semaphore:
+                    try:
+                        html_desc = await self.fetch_description_html_curl(
+                            session, job['link'], headers=headers, cookies=cookies, impersonate=impersonate
+                        )
+                        if html_desc and html_desc != 'BLOCKED_429':
+                            job['raw_html_desc'] = html_desc
+                        else:
+                            next_pending.append(job)
+                    except Exception as e:
+                        logging.warning(f"   [Async Network Warning] Failed fetching for {job['link']}: {e}")
+                        next_pending.append(job)
+                    await asyncio.sleep(random.uniform(1.2, 2.5))
+            
+            for i in range(0, len(pending_jobs), batch_size):
+                batch = pending_jobs[i:i + batch_size]
+                pending_before = len(next_pending)
+                
+                async with AsyncSession() as session:
+                    tasks = [worker(session, job) for job in batch]
+                    await asyncio.gather(*tasks)
+                
+                batch_failed = len(next_pending) - pending_before
+                if batch_failed >= max(3, len(batch)//2):
+                    await asyncio.sleep(10)
+                else:
+                    await asyncio.sleep(1.5)
+            
+            pending_jobs = next_pending
+            
+        if pending_jobs:
+            logging.warning(f"   [Giving Up] {len(pending_jobs)}/{len(job_list)} job descriptions could never be downloaded after {max_retries + 1} attempts.")
+            
+        return job_list
      

@@ -146,7 +146,6 @@ class BestJobsScraper(BaseScraper):
         
         parser = JobParser()
         processed_jobs = []
-        pending_jobs = list(job_list)
 
         headers = {
             'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -154,28 +153,11 @@ class BestJobsScraper(BaseScraper):
             'Upgrade-Insecure-Requests': '1'
         }
 
-        semaphore = asyncio.Semaphore(concurrency)
-
-        async def worker(session, job):
-            async with semaphore:
-                try:
-                    html_desc = await self.fetch_description_html_curl(session, job['link'], headers=headers, impersonate = 'chrome120')
-
-                    if html_desc and html_desc != 'BLOCKED_429':
-                        job['raw_html_desc'] = html_desc
-                except Exception as e:
-                    logging.warning(f"   [Async Network Warning] Failed fetching for {job['link']}: {e}")
-
-                await asyncio.sleep(random.uniform(1.0, 1.5))
-
-        for i in range(0, len(job_list), batch_size):
-            batch = job_list[i:i + batch_size]
-
-            async with AsyncSession() as session:
-                tasks = [worker(session, job) for job in batch]
-                await asyncio.gather(*tasks)
-
-            await asyncio.sleep(0.8)
+        await self.fetch_all_descriptions_generic(
+            job_list, headers=headers, cookies=None, impersonate='chrome120', 
+            concurrency=concurrency, batch_size=batch_size
+            )
+                
 
         logging.info(f"   [Parser Engine - BestJobs] Starting analytical parsing for {len(job_list)} fetched pages...")
         for job in job_list:

@@ -114,7 +114,6 @@ class EJobsScraper(BaseScraper):
         
         parser = JobParser()
         processed_jobs = []
-        pending_jobs = list(job_list)
 
         cookie_dict = {c['name']: c['value'] for c in cookies} if cookies else {}
         headers = {
@@ -129,57 +128,12 @@ class EJobsScraper(BaseScraper):
             logging.info(f"   [Session Reuse] No Selenium cookies captured — using curl_cffi's "
                          f"Chrome impersonation without session cookies.")
 
-        for attempt in range(max_retries + 1):
-            if not pending_jobs:
-                break
-
-            if attempt > 0:
-                cooldown = 15 * attempt
-                logging.warning(f"   [Retry Round {attempt}] Re-attempting {len(pending_jobs)} "
-                                 f"jobs that were blocked/failed on the previous pass. "
-                                 f"Cooling down {cooldown}s first...")
-                await asyncio.sleep(cooldown)
-
-            next_pending = []
-            semaphore = asyncio.Semaphore(concurrency)
-
-            async def worker(session, job):
-                async with semaphore:
-                    try:
-                        html_desc = await self.fetch_description_html_curl(session, job['link'], headers= headers, cookies = cookie_dict, impersonate = 'chrome120')
-                        if html_desc and html_desc != 'BLOCKED_429':
-                            job['raw_html_desc'] = html_desc
-                        else:
-                            next_pending.append(job)
-                    except Exception as e:
-                        logging.warning(f"   [Async Network Warning] Failed fetching for {job['link']}: {e}")
-                        next_pending.append(job)
-
-                    await asyncio.sleep(random.uniform(1.2, 2))
-
-            
-            for i in range(0, len(pending_jobs), batch_size):  
-                batch = pending_jobs[i:i + batch_size]
-                pending_before = len(next_pending)
-
-                async with AsyncSession() as session:  
-                    tasks = [worker(session,job) for job in batch]
-                    await asyncio.gather(*tasks)
-
-                batch_failed = len(next_pending) - pending_before
-                if batch_failed >= max(3, len(batch)//2):
-                    await asyncio.sleep(10)      
-                else:
-                    await asyncio.sleep(1.5)
-
-            pending_jobs = next_pending
-
-        if pending_jobs:
-            logging.warning(f"   [Giving Up] {len(pending_jobs)}/{len(job_list)} job descriptions "
-                             f"could never be downloaded after {max_retries + 1} attempts "
-                             f"(persistent 429/network failures). These are skipped, not saved.")
-
-        fetched_count = len(job_list) - len(pending_jobs)
+        await self.fetch_all_descriptions_generic(
+            job_list, headers=headers, cookies=cookie_dict, impersonate='chrome120', 
+            concurrency=concurrency, batch_size=batch_size, max_retries=max_retries
+        )
+        
+        fetched_count = sum(1 for job in job_list if 'raw_html_desc' in job)
         logging.info(f"   [Parser Engine - eJobs] Starting analytical parsing for {fetched_count} fetched pages...")
 
         for job in job_list:
@@ -200,8 +154,9 @@ class EJobsScraper(BaseScraper):
                         processed_jobs.append(job)
                 except Exception as e:
                     logging.warning(f"   [Parser Error] Error extracting text details: {e}")
-                    
+
+        never_fetched = len(job_list) - fetched_count   
         logging.info(f"   [Fetch Summary] raw={len(job_list)} | saved={len(processed_jobs)} "
-                     f"| never_fetched={len(pending_jobs)}")
+                     f"| never_fetched={never_fetched}")
 
         return processed_jobs
