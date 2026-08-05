@@ -17,13 +17,13 @@ jobs:
       uses: docker/setup-buildx-action@v2
 
     - name: Build Docker Image
-      env:
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
       run: |
         docker build -t romania_it_job_scraper .
 
     - name: Run Scraper Container
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
       run: |
         touch jobs.db scraper.log run_stats.json
         
