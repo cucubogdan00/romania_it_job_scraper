@@ -7,9 +7,10 @@ import random
 from parser import JobParser
 from datetime import datetime
 from curl_cffi.requests import AsyncSession
+from config import DB_NAME
 class JobDatabase:
     
-    def __init__(self, db_name = 'jobs.db'):
+    def __init__(self, db_name = DB_NAME):
         self.db_name = db_name
 
     

@@ -17,6 +17,12 @@ from selenium.webdriver.chrome.options import Options
 from linkedin_scraper import LinkedInScraper
 from dotenv import load_dotenv
 from pathlib import Path
+from config import (
+    DB_NAME, 
+    EJOBS_CONCURRENCY, EJOBS_BATCH_SIZE, EJOBS_MAX_RETRIES,
+    BESTJOBS_CONCURRENCY, BESTJOBS_BATCH_SIZE, BESTJOBS_MAX_RETRIES,
+    LINKEDIN_CONCURRENCY, LINKEDIN_BATCH_SIZE, LINKEDIN_MAX_RETRIES
+)
 
 env_path = Path(__file__).resolve().parent / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -114,7 +120,15 @@ async def run_ejobs(db_queue, tech_keywords):
             
         if raw_category_jobs:
             logging.info(f"🔥 Starting async processing for {len(raw_category_jobs)} raw eJobs jobs in '{category}'...")
-            processed_jobs = await ejobs_scraper.process_descriptions_await(raw_category_jobs, tech_keywords,batch_size= 5, concurrency= 1 , max_retries= 1,cookies= session_cookies, user_agent=session_user_agent)
+            processed_jobs = await ejobs_scraper.process_descriptions_await(
+                raw_category_jobs, tech_keywords,
+                batch_size= EJOBS_BATCH_SIZE, 
+                concurrency= EJOBS_CONCURRENCY , 
+                max_retries= EJOBS_MAX_RETRIES,
+                cookies= session_cookies, 
+                user_agent=session_user_agent
+                )
+            
             lost_count = len(raw_category_jobs) - len(processed_jobs)
             logging.info(f"[eJobs Category Summary] '{category}': raw={len(raw_category_jobs)} "
                         f"saved={len(processed_jobs)} lost={lost_count}")
@@ -159,7 +173,12 @@ async def run_bestjobs(db_queue, tech_keywords):
 
             if raw_bj_jobs and isinstance(raw_bj_jobs, list):
                 logging.info(f"🔥 Starting async processing for {len(raw_bj_jobs)} raw BestJobs jobs in '{category}'...")
-                processed_bj_jobs = await bestjobs_scraper.process_descriptions_await(raw_bj_jobs, tech_keywords)
+                processed_bj_jobs = await bestjobs_scraper.process_descriptions_await(
+                    raw_bj_jobs, tech_keywords, 
+                    batch_size= BESTJOBS_BATCH_SIZE, 
+                    concurrency= BESTJOBS_CONCURRENCY, 
+                    max_retries= BESTJOBS_MAX_RETRIES
+                    )
 
                 if processed_bj_jobs:
                     await db_queue.put((processed_bj_jobs, 'BestJobs'))
@@ -209,7 +228,10 @@ async def run_linkedin(db_queue, tech_keywords, location="Romania"):
             if raw_jobs:
                 logging.info(f"🔥 Starting async processing for {len(raw_jobs)} raw LinkedIn jobs in '{category}'...")
                 processed_jobs = await scraper.process_descriptions_await(
-                    raw_jobs, tech_keywords, batch_size=5, concurrency=2
+                    raw_jobs, tech_keywords, 
+                    batch_size=LINKEDIN_BATCH_SIZE, 
+                    concurrency=LINKEDIN_CONCURRENCY,
+                    max_retries=LINKEDIN_MAX_RETRIES
                 )
 
                 if processed_jobs:
@@ -288,7 +310,7 @@ def send_telegram_run_stats():
     except Exception as e:
         logging.error(f"[Telegram Error] Network exception: {e}")
 
-def save_run_stats(total_saved_run, run_start_time, expired_count, duration_str, db_name = 'jobs.db'):
+def save_run_stats(total_saved_run, run_start_time, expired_count, duration_str, db_name = DB_NAME):
 
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
@@ -356,7 +378,7 @@ async def main():
     'playwright', 'jmeter', 'postman', 'prometheus', 'grafana', 'wireshark' 
     }
 
-    db = JobDatabase('jobs.db')
+    db = JobDatabase(DB_NAME)
     db.init_db()
 
     db_queue = asyncio.Queue()

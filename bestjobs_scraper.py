@@ -141,7 +141,7 @@ class BestJobsScraper(BaseScraper):
 
         return []
     
-    async def process_descriptions_await(self, job_list, tech_keywords, batch_size = 15, concurrency = 7):
+    async def process_descriptions_await(self, job_list, tech_keywords, batch_size = 15, concurrency = 7, max_retries = 0):
 
         if not job_list:
             return []
@@ -157,7 +157,7 @@ class BestJobsScraper(BaseScraper):
 
         await self.fetch_all_descriptions_generic(
             job_list, headers=headers, cookies=None, impersonate='chrome120', 
-            concurrency=concurrency, batch_size=batch_size
+            concurrency=concurrency, batch_size=batch_size, max_retries=max_retries
             )
                 
 

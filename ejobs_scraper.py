@@ -110,7 +110,7 @@ class EJobsScraper(BaseScraper):
         return [], True
     
     async def process_descriptions_await(self, job_list, tech_keywords, batch_size = 15, 
-                                         concurrency = 7, max_retries = 2, cookies = None, user_agent = None):
+                                         concurrency = 7, max_retries = 0, cookies = None, user_agent = None):
 
         if not job_list:
             return []

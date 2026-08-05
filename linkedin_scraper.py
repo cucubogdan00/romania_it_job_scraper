@@ -120,7 +120,7 @@ class LinkedInScraper(BaseScraper):
 
         return page_jobs
 
-    async def process_descriptions_await(self, job_list, tech_keywords, batch_size=10, concurrency=5):
+    async def process_descriptions_await(self, job_list, tech_keywords, batch_size=10, concurrency=5, max_retries=0):
         if not job_list:
             return []
 
@@ -135,7 +135,7 @@ class LinkedInScraper(BaseScraper):
 
         await self.fetch_all_descriptions_generic(
             job_list, headers=headers, cookies=None, impersonate='chrome120', 
-            concurrency=concurrency, batch_size=batch_size
+            concurrency=concurrency, batch_size=batch_size, max_retries=max_retries
             )
         
         logging.info(f"   [Parser Engine - LinkedIn] Analyzing descriptions for fetched pages...")

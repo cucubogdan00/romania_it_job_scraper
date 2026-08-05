@@ -4,6 +4,7 @@ import asyncio
 import random 
 
 from curl_cffi.requests import AsyncSession
+from config import FETCH_TIMEOUT, IMPERSONATE_BROWSER
 class BaseScraper:
 
     def create_job_blueprint(self):
@@ -28,11 +29,11 @@ class BaseScraper:
         hash_object = hashlib.sha256(combined_text.encode('utf-8'))
         return hash_object.hexdigest()
     
-    async def fetch_description_html_curl(self, session, url, headers = None, cookies = None, impersonate = 'chrome'):
+    async def fetch_description_html_curl(self, session, url, headers = None, cookies = None, impersonate = IMPERSONATE_BROWSER):
         try:
             response = await session.get(
                 url, headers = headers, cookies = cookies,
-                impersonate = impersonate, timeout = 20
+                impersonate = impersonate, timeout = FETCH_TIMEOUT
             )
 
             if response.status_code == 429:
