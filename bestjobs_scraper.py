@@ -19,16 +19,8 @@ class BestJobsScraper(BaseScraper):
 
     def fetch_html_content(self, url):
 
-        chrome_options = Options()
-        chrome_options.add_argument('--headless=new')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
-        chrome_options.add_argument('--disable-gpu')
-
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        
         try:
+            chrome_options = self.get_chrome_options()
             driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
