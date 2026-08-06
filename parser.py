@@ -2,6 +2,7 @@ import re
 import logging
 
 from bs4 import BeautifulSoup
+from config import NEGATIVE_KEYWORDS
 class JobParser:
 
     def parse_location(self, location_text):
@@ -42,18 +43,7 @@ class JobParser:
 
         title_lower = title_text.lower()
 
-        negative_keywords = [
-            'cnc', 'operator', 'mecanic', 'tehnician', 'stivuitorist', 
-            'contabil', 'economist', 'vanzari', 'sales', 'reprezentant', 
-            'logistic', 'achizitii', 'call center', 'operator date', 'chef',
-            'electrician', 'lacatus', 'sudor', 'finanzist', 'juridic', 
-            'avocat', 'marketing', 'social media', 'content creator', 'video editor',
-            'HR', 'recruiter', 'recrutare', 'ospitalier', 'ospatar', 'bucatar',
-            'profesor', 'invatator', 'educator', 'medist', 'asistent medical',
-            'constructor', 'arhitect (nu software)', 'agent', 'asigurari', 'bancar (front office)'
-        ]
-
-        for neg in negative_keywords:
+        for neg in NEGATIVE_KEYWORDS:
             pattern = r'\b' + re.escape(neg) + r'\b'
             if re.search(pattern, title_lower):
                 return True

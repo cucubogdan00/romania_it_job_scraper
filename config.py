@@ -29,3 +29,17 @@ BESTJOBS_MAX_RETRIES = 1
 LINKEDIN_CONCURRENCY = 2
 LINKEDIN_BATCH_SIZE = 5
 LINKEDIN_MAX_RETRIES = 1
+
+# ==========================================
+# Filtering Configuration (Non-IT Job Blocklist)
+# ==========================================
+NEGATIVE_KEYWORDS = [
+    'cnc', 'operator', 'mecanic', 'tehnician', 'stivuitorist', 
+    'contabil', 'economist', 'vanzari', 'sales', 'reprezentant', 
+    'logistic', 'achizitii', 'call center', 'operator date', 'chef',
+    'electrician', 'lacatus', 'sudor', 'finanzist', 'juridic', 
+    'avocat', 'marketing', 'social media', 'content creator', 'video editor',
+    'HR', 'recruiter', 'recrutare', 'ospitalier', 'ospatar', 'bucatar',
+    'profesor', 'invatator', 'educator', 'medist', 'asistent medical',
+    'constructor', 'arhitect (nu software)', 'agent', 'asigurari', 'bancar (front office)'
+]
