@@ -97,7 +97,10 @@ class LinkedInScraper(BaseScraper):
                     continue
 
                 company_text = company_tag.get_text(strip=True) if company_tag else 'Unknown'
-                location_text = location_tag.get_text(strip=True) if location_tag else 'Romania'
+
+                raw_location = location_tag.get_text(strip=True) if location_tag else 'Romania'
+                location_text = raw_location.split(',')[0].strip() if raw_location else 'Romania'
+                
                 job_url = link_tag.get('href').split('?')[0] 
 
                 job = self.create_job_blueprint()
