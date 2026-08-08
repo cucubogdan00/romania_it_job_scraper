@@ -24,6 +24,55 @@
     <h1>📊 Active IT Jobs Dashboard</h1>
     
     <div class='counter'>Total active jobs: <b>{{ jobs|length }}</b></div>
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;">
+        <form method="GET" action="/" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+            
+            <div style="flex: 1; min-width: 200px;">
+                <label for="search" style="font-weight: bold; font-size: 14px; color: #2c3e50;">Search:</label>
+                <input type="text" id="search" name="search" value="{{ current_search }}" placeholder="Title, Company, Technologies, City ..." 
+                       style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #e1e8ed; margin-top: 5px;">
+            </div>
+
+            <div>
+                <label for="work_mode" style="font-weight: bold; font-size: 14px; color: #2c3e50;">Work Mode:</label>
+                <select id="work_mode" name="work_mode" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #e1e8ed; margin-top: 5px;">
+                    <option value="">All</option>
+                    <option value="Remote" {% if current_work_mode == 'Remote' %}selected{% endif %}>Remote</option>
+                    <option value="Hybrid" {% if current_work_mode == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                    <option value="On-site" {% if current_work_mode == 'On-site' %}selected{% endif %}>On-site</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="experience" style="font-weight: bold; font-size: 14px; color: #2c3e50;">Experience:</label>
+                <select id="experience" name="experience" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #e1e8ed; margin-top: 5px;">
+                    <option value="">All</option>
+                    <option value="Entry-Level (< 2 ani)" {% if current_experience == 'Entry-Level (< 2 ani)' %}selected{% endif %}>Entry-Level</option>
+                    <option value="Mid-Level (2-5 ani)" {% if current_experience == 'Mid-Level (2-5 ani)' %}selected{% endif %}>Mid-Level</option>
+                    <option value="Senior-Level (> 5 ani)" {% if current_experience == 'Senior-Level (> 5 ani)' %}selected{% endif %}>Senior-Level</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="source" style="font-weight: bold; font-size: 14px; color: #2c3e50;">Platform:</label>
+                <select id="source" name="source" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #e1e8ed; margin-top: 5px;">
+                    <option value="">All</option>
+                    <option value="eJobs" {% if current_source == 'eJobs' %}selected{% endif %}>eJobs</option>
+                    <option value="BestJobs" {% if current_source == 'BestJobs' %}selected{% endif %}>BestJobs</option>
+                    <option value="LinkedIn" {% if current_source == 'LinkedIn' %}selected{% endif %}>LinkedIn</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" style="padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                    Filter
+                </button>
+                <a href="/" style="padding: 10px 20px; background-color: #7f8c8d; color: white; border-radius: 4px; text-decoration: none; font-size: 14px; margin-left: 5px; display: inline-block;">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
     <div class='table-container'>
         <table>
             <tr>
