@@ -2,27 +2,29 @@
 
 A high-performance, hybrid web scraper designed to collect, parse, and analyze IT and technical job openings from Romania's leading recruitment platforms: **eJobs, BestJobs, and LinkedIn**.
 
-The application utilizes Object-Oriented Programming (OOP) principles, is fully containerized with Docker, uses SQLite for local data persistence and delivers live execution reports via Telegram.
+The application utilizes Object-Oriented Programming (OOP) principles, is fully containerized with Docker, uses SQLite for local data persistence and delivers live execution reports via Telegram. It also includes an **Interactive Web Dashboard (ATS)** built with FastAPI to track and manage job applications seamlessly.
 
 ---
 
 ## Features
 
-* **Multi-Platform Hybrid Engine:** Combines Selenium (Chromium Headless) for dynamic page scrolling with `curl_cffi` (TLS/HTTP2 browser impersonation) and `aiohttp` for lightning-fast, asynchronous, anti-bot resilient detail fetching.
+* **Multi-Platform Hybrid Engine:** Combines Selenium (Chromium Headless) for dynamic page scrolling with `curl_cffi` (TLS/HTTP2 browser impersonation) for lightning-fast, asynchronous, anti-bot resilient detail fetching.
 * **Modular Architecture:** Cleanly decoupled system divided into distinct classes (`BaseScraper`, `EJobsScraper`, `BestJobsScraper`, `LinkedInScraper`, `JobParser`, and `JobDatabase`).
 * **Intelligent Data Parsing:** Extracts technical keywords, experience levels, and work modes. Includes a strict negative-keyword filter to automatically drop non-IT roles.
 * **Smart Location Fallback:** Accurately determines 'Remote' or 'Hybrid' work modes by prioritizing scraped descriptions over basic location tags.
 * **Robust Data Merging (UPSERT):** Uses SHA-256 job hashing to generate unique IDs and automatically updates existing entries (reposted jobs) in SQLite.
 * **Automated Expiry Checker:** Periodically validates active database entries against the source websites to automatically mark expired roles.
+* **Interactive Web Dashboard (ATS):** A built-in web interface powered by FastAPI to view, multi-filter, and track applied jobs with asynchronous status toggling.
 * **Telegram Notifications:** Dispatches real-time run statistics (total saved, active jobs, expired roles, and execution duration) directly to a Telegram bot.
 
 ---
 
 ## Tech Stack
 
-* **Language:** Python 3.9.6+
-* **Libraries:** BeautifulSoup4, Requests, Selenium, asyncio, aiohttp, curl_cffi
-* **Browser Automation:** Chromium & Chromedriver
+* **Language:** Python 3.12+
+* **Web Framework:** FastAPI, Uvicorn, Jinja2, python-multipart
+* **Libraries:** BeautifulSoup4, Requests, Selenium, asyncio, curl_cffi
+* **Browser Automation:** Chromium & Chromedriver, HTML5, CSS3, JavaScript (Fetch API)
 * **Database:** SQLite3
 * **Containerization:** Docker & GitHub Actions
 
@@ -30,38 +32,52 @@ The application utilizes Object-Oriented Programming (OOP) principles, is fully 
 
 ## Installation & Usage
 
-### Method 1: Running with Docker (Recommended)
+### Step 1: Core Setup (Local Environment)
+If you prefer to run or develop the project locally, set up your workspace first:
 
-The application is pre-configured to run isolated inside a container. To build the image and run the scraper while persisting both the SQLite database and the execution logs on your host machine, execute:
+```bash
+# 1. Clone the repository and navigate into the folder
+cd romania_it_job_scraper
 
+# 2. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+```
+
+### Step 2: Running Options
+
+You can run either the automated data scraper or launch the interactive web dashboard depending on what you need:
+
+#### Option A: Running the Scraper (Local)
+Make sure you have Google Chrome or Chromium installed on your system:
+```bash
+python3 main.py
+```
+
+#### Option B: Running the Scraper via Docker (Recommended)
+The application is pre-configured to run isolated inside a container. To build the image and run the scraper while persisting both the SQLite database and the execution logs on your host machine:
 ```bash
 # 1. Build the Docker image
 docker build -t romania_it_job_scraper .
 
-# 2. Run the container with database and log volume mapping
+# 2. Run the container with volume mapping
 docker run --rm \
   -v $(pwd)/jobs.db:/app/jobs.db \
   -v $(pwd)/scraper.log:/app/scraper.log \
   romania_it_job_scraper
 ```
 
-### Method 2: Local Development Environment
-
-If you prefer to run the scraper directly on your local system (make sure you have Google Chrome or Chromium installed):
-
+#### Option C: Launching the Interactive Web Dashboard
+To start the local web interface for managing and tracking your job applications:
 ```bash
-# 1. Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Run the application
-python3 main.py
+uvicorn dashboard:app --reload
 ```
 
 ---
+
 ## 📈 Live Market Insights (Sample Report)
 
 *A snapshot automatically generated by the market analytics module from 3,924 active tech listings:*
