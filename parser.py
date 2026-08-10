@@ -5,6 +5,34 @@ from bs4 import BeautifulSoup
 from config import NEGATIVE_KEYWORDS
 class JobParser:
 
+    def __init__(self):
+        self.compiled_patterns = {}
+
+    def get_compiled_pattern(self, kw):
+        if kw in self.compiled_patterns:
+            return self.compiled_patterns[kw]
+
+        kw_lower = kw.lower()
+        special_patterns = {
+            '.net': r'(\bdotnet\b|\.net)',
+            'c#': r'(?:c\s*#|c-sharp)',
+            'c++': r'c\s*\+\+',
+            'ci/cd': r'(?:ci/cd|ci-cd)',
+            'asp.net': r'asp\.net'
+        }
+
+        if kw_lower in special_patterns:
+            pattern = special_patterns[kw_lower]
+        elif re.match(r'^[a-zA-Z0-9]+$', kw_lower):
+            pattern = r'\b' + re.escape(kw_lower) + r'\b'
+        else:
+            pattern = r'(?<![a-zA-Z0-9])' + re.escape(kw_lower) + r'(?![a-zA-Z0-9])'
+
+        compiled = re.compile(pattern)
+        self.compiled_patterns[kw] = compiled 
+
+        return compiled
+
     def parse_location(self, location_text):
 
         if not location_text:
@@ -55,29 +83,11 @@ class JobParser:
         found = []
         text_lower = text.lower()
 
-        special_patterns = {
-            '.net': r'(\bdotnet\b|\.net)',
-            'c#': r'(?:c\s*#|c-sharp)',
-            'c++': r'c\s*\+\+',
-            'ci/cd': r'(?:ci/cd|ci-cd)',
-            'asp.net': r'asp\.net'
-        }
-
         for kw in tech_keywords:
-            kw_lower = kw.lower()
+            pattern = self.get_compiled_pattern(kw)
+            if pattern.search(text_lower):
+                found.append(kw)
 
-            if kw_lower in special_patterns:
-                pattern = special_patterns[kw_lower]
-                if re.search(pattern,text_lower):
-                    found.append(kw)
-            elif re.match(r'^[a-zA-Z0-9]+$', kw_lower):
-                pattern = r'\b' + re.escape(kw_lower) + r'\b'
-                if re.search(pattern, text_lower):
-                    found.append(kw)
-            else:
-                pattern = r'(?<![a-zA-Z0-9])' + re.escape(kw_lower) + r'(?![a-zA-Z0-9])'
-                if re.search(pattern, text_lower):
-                    found.append(kw)
         return found
 
     def extract_data_from_description(self, job_url, tech_keywords, fetch_func):
