@@ -41,9 +41,11 @@ class JobParser:
         loc_lower = location_text.lower()
 
         experience_keywords = ['junior', 'middle', 'senior', 'entry', 'executive', 'ani', 'experien']
-        if any(exp_kw in loc_lower for exp_kw in experience_keywords):
-            return 'Unknown', 'On-site'
+        pattern = r'\b(?:' + '|'.join(experience_keywords) + r')\b'
 
+        if re.search(pattern, loc_lower):
+            return 'Unknown', 'On-site'
+        
         if 'remote' in loc_lower:
             work_mode = 'Remote'
         elif 'hybrid' in loc_lower or 'hibrid' in loc_lower:
