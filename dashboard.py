@@ -1,6 +1,6 @@
 import sqlite3
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Depends
 from fastapi.responses import JSONResponse 
 from fastapi.templating import Jinja2Templates
 from config import DB_NAME
@@ -10,17 +10,24 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
+def get_db():
+    connection = sqlite3.connect(DB_NAME)
+    connection.row_factory = sqlite3.Row
+
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
 def fetch_jobs_from_db(
+    cursor,
     status_filter: str,
     search: Optional[str] = None,
     work_mode: Optional[str] = None,
     experience: Optional[str] = None,
     source: Optional[str] = None
 ):
-
-    connection = sqlite3.connect(DB_NAME)
-    connection.row_factory = sqlite3.Row  
-    cursor = connection.cursor()
 
     base_query = f"""
     SELECT id, title, company, location, experience, city, work_mode, link, technologies, date_scraped, source, status
@@ -50,19 +57,19 @@ def fetch_jobs_from_db(
     base_query += " ORDER BY date_scraped DESC"
 
     cursor.execute(base_query, params)
-    jobs = cursor.fetchall()
-    connection.close()
-    return jobs
-
+    return cursor.fetchall()
+    
 @app.get('/')
 def read_jobs(
     request: Request,
     search: Optional[str] = None,
     work_mode: Optional[str] = None,
     experience: Optional[str] = None,
-    source: Optional[str] = None
+    source: Optional[str] = None,
+    db: sqlite3.Connection = Depends(get_db)
 ):
-    jobs = fetch_jobs_from_db('active', search, work_mode, experience, source)
+    cursor = db.cursor()
+    jobs = fetch_jobs_from_db(cursor, 'active', search, work_mode, experience, source)
     
     return templates.TemplateResponse(
         request=request, 
@@ -84,9 +91,11 @@ def read_applied_jobs(
     search: Optional[str] = None,
     work_mode: Optional[str] = None,
     experience: Optional[str] = None,
-    source: Optional[str] = None
+    source: Optional[str] = None,
+    db: sqlite3.Connection = Depends(get_db)
 ):
-    jobs = fetch_jobs_from_db('applied', search, work_mode, experience, source)
+    cursor = db.cursor()
+    jobs = fetch_jobs_from_db(cursor, 'applied', search, work_mode, experience, source)
     
     return templates.TemplateResponse(
         request=request, 
@@ -103,12 +112,13 @@ def read_applied_jobs(
     )
 
 @app.post('/toggle_status/{job_id}')
-def toggle_job_status(job_id: str, new_status: str = Form(...)):
-    connection = sqlite3.connect(DB_NAME)
-    cursor = connection.cursor()
-
+def toggle_job_status(
+    job_id: str, 
+    new_status: str = Form(...),
+    db: sqlite3.Connection = Depends(get_db)
+    ):
+    cursor = db.cursor()
     cursor.execute("UPDATE jobs SET status = ? WHERE id = ?", (new_status, job_id))
-    connection.commit()
-    connection.close()
-
+    db.commit()
+    
     return JSONResponse(content={"success": True, "job_id": job_id, "new_status": new_status})
