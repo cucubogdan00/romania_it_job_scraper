@@ -108,3 +108,6 @@ uvicorn dashboard:app --reload
 
 ## Author
 Bogdan Cucu - https://github.com/cucubogdan00
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
