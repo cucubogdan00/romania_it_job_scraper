@@ -3,8 +3,8 @@ import logging
 import asyncio
 import random
 
-from parser import JobParser
-from base_scraper import BaseScraper
+from core.parser import JobParser
+from scrapers.base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options

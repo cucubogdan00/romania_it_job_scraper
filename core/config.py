@@ -3,7 +3,8 @@ import os
 # ==========================================
 # Database Configuration
 # ==========================================
-DB_NAME = os.getenv('DB_NAME', 'jobs.db')
+os.makedirs('data', exist_ok=True)
+DB_NAME = os.getenv('DB_NAME', 'data/jobs.db')
 
 # ==========================================
 # Global Network Settings

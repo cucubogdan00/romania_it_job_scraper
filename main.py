@@ -9,15 +9,15 @@ import requests
 
 from datetime import datetime
 from bs4 import BeautifulSoup
-from ejobs_scraper import EJobsScraper
-from database import JobDatabase
-from bestjobs_scraper import BestJobsScraper
+from scrapers.ejobs_scraper import EJobsScraper
+from core.database import JobDatabase
+from scrapers.bestjobs_scraper import BestJobsScraper
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from linkedin_scraper import LinkedInScraper
+from scrapers.linkedin_scraper import LinkedInScraper
 from dotenv import load_dotenv
 from pathlib import Path
-from config import (
+from core.config import (
     DB_NAME, 
     EJOBS_CONCURRENCY, EJOBS_BATCH_SIZE, EJOBS_MAX_RETRIES,
     BESTJOBS_CONCURRENCY, BESTJOBS_BATCH_SIZE, BESTJOBS_MAX_RETRIES,
@@ -32,7 +32,7 @@ logging.basicConfig(
     format = "%(asctime)s [%(levelname)s] %(message)s",
     datefmt = "%Y-%m-%d %H-%M-%S",
     handlers = [
-        logging.FileHandler('scraper.log', encoding = 'utf-8'),
+        logging.FileHandler('data/scraper.log', encoding = 'utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -270,7 +270,7 @@ def send_telegram_run_stats():
         logging.warning("[Telegram] Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID in environment variables. Skipping notification.")
         return
 
-    filename = "run_stats.json"
+    filename = "data/run_stats.json"
     if not os.path.exists(filename):
         logging.warning("[Telegram] run_stats.json not found, skipping notification.")
         return
@@ -328,7 +328,7 @@ def save_run_stats(total_saved_run, run_start_time, expired_count, duration_str,
         "duration" : duration_str
 
     }
-    filename = "run_stats.json"
+    filename = "data/run_stats.json"
 
     if os.path.exists(filename):
         with open(filename, 'r', encoding = 'utf-8') as f:

@@ -2,7 +2,7 @@ import re
 import logging
 
 from bs4 import BeautifulSoup
-from config import NEGATIVE_KEYWORDS
+from core.config import NEGATIVE_KEYWORDS
 class JobParser:
 
     def __init__(self):

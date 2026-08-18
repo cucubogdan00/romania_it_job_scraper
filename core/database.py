@@ -4,10 +4,10 @@ import logging
 import asyncio
 import random
 
-from parser import JobParser
+from core.parser import JobParser
 from datetime import datetime
 from curl_cffi.requests import AsyncSession
-from config import DB_NAME
+from core.config import DB_NAME
 class JobDatabase:
     
     def __init__(self, db_name = DB_NAME):

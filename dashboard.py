@@ -3,7 +3,7 @@ import sqlite3
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.responses import JSONResponse 
 from fastapi.templating import Jinja2Templates
-from config import DB_NAME
+from core.config import DB_NAME
 from typing import Optional
 
 app = FastAPI()

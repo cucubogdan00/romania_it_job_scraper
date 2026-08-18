@@ -4,7 +4,7 @@ import asyncio
 import random 
 
 from curl_cffi.requests import AsyncSession
-from config import FETCH_TIMEOUT, IMPERSONATE_BROWSER
+from core.config import FETCH_TIMEOUT, IMPERSONATE_BROWSER
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 class BaseScraper:

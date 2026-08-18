@@ -8,9 +8,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service 
 from selenium.webdriver.common.by import By
-from base_scraper import BaseScraper
-from parser import JobParser
-from database import JobDatabase
+from scrapers.base_scraper import BaseScraper
+from core.parser import JobParser
+from core.database import JobDatabase
 from curl_cffi.requests import AsyncSession
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC

@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from base_scraper import BaseScraper
-from parser import JobParser
+from scrapers.base_scraper import BaseScraper
+from core.parser import JobParser
 from curl_cffi.requests import AsyncSession
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC

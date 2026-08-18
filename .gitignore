@@ -1,5 +1,6 @@
-!jobs.db
-!scraper.log
+!data/jobs.db
+!data/scraper.log
+!data/run_stats.json
 
 *.db
 *.log
